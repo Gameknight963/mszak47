@@ -2,6 +2,7 @@
 using MelonLoader.Utils;
 using UnityEngine;
 using VGltf;
+using InventoryFramework;
 
 [assembly: MelonInfo(typeof(mszguns.Core), "Miside Zero AK47", "1.0.0", "gameknight963")]
 
@@ -12,18 +13,33 @@ namespace mszguns
         public static string ModResources { get; set; } = Path.Combine(MelonEnvironment.ModsDirectory, "mszguns");
         public static string GunPath { get; set; } = Path.Combine(ModResources, "ak47.glb");
 
+        GameObject? gun;
+        const string itemId = "ak47";
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             if (sceneName != "Version 1.9 POST") return;
             Transform t = Camera.main.transform;
 
-            GameObject gun = LoadGun(GunPath);
+            gun = LoadGun(GunPath);
             gun.transform.parent = t;
 
             gun.transform.eulerAngles = t.eulerAngles;
             gun.transform.position = t.position;
-            gun.transform.localPosition += new Vector3(0.2f, -0.2f, 0.08f);
+            gun.transform.localPosition += new Vector3(0.15f, -0.17f, 0.08f);
+            gun.active = false;
+        }
+
+        public override void OnInitializeMelon()
+        {
+            InventoryManager.Instance.RegisterItem(new ItemDefinition(itemId, "AK47"));
+            InventoryManager.Instance.PlayerInventory.AddItem(itemId);
+            InventoryManager.Instance.OnItemSelected += Instance_OnItemSelected;
+        }
+
+        private void Instance_OnItemSelected(InventoryItem? item)
+        {
+            gun!.active = item != null && item.Definition.Id == itemId;
         }
 
         private GameObject LoadGun(string path)
@@ -38,7 +54,7 @@ namespace mszguns
                 foreach (int nodeIndex in container.Gltf.Scenes[container.Gltf.Scene.Value].Nodes)
                     BuildNode(container, nodeIndex, root.transform);
 
-            root.transform.localScale = Vector3.one * 0.001f;
+            root.transform.localScale = Vector3.one * 0.0005f;
             return root;
         }
 
@@ -56,7 +72,7 @@ namespace mszguns
                 Material material = new(Shader.Find("Standard"));
                 if (materialIndex != null)
                 {
-                    Texture2D tex = LoadTexture(container, materialIndex.Value);
+                    Texture2D? tex = LoadTexture(container, materialIndex.Value);
                     if (tex != null)
                         material.mainTexture = tex;
                 }
@@ -97,7 +113,7 @@ namespace mszguns
             return (mesh, prim.Material);
         }
 
-        private Texture2D LoadTexture(GltfContainer container, int materialIndex)
+        private Texture2D? LoadTexture(GltfContainer container, int materialIndex)
         {
             VGltf.Types.Material mat = container.Gltf.Materials[materialIndex];
 
@@ -128,7 +144,7 @@ namespace mszguns
         private Vector2[] ReadVec2Array(GltfContainer container, int accessorIndex)
         {
             VGltf.Types.Accessor accessor = container.Gltf.Accessors[accessorIndex];
-            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView.Value];
+            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView!.Value];
             byte[] buffer = container.Buffer.Payload.ToArray();
             int offset = view.ByteOffset + accessor.ByteOffset;
             Vector2[] result = new Vector2[accessor.Count];
@@ -144,7 +160,7 @@ namespace mszguns
         private Vector3[] ReadVec3Array(GltfContainer container, int accessorIndex)
         {
             VGltf.Types.Accessor accessor = container.Gltf.Accessors[accessorIndex];
-            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView.Value];
+            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView!.Value];
             byte[] buffer = container.Buffer.Payload.ToArray();
             int offset = view.ByteOffset + accessor.ByteOffset;
             Vector3[] result = new Vector3[accessor.Count];
@@ -161,7 +177,7 @@ namespace mszguns
         private int[] ReadIntArray(GltfContainer container, int accessorIndex)
         {
             VGltf.Types.Accessor accessor = container.Gltf.Accessors[accessorIndex];
-            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView.Value];
+            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView!.Value];
             byte[] buffer = container.Buffer.Payload.ToArray();
             int offset = view.ByteOffset + accessor.ByteOffset;
             int[] result = new int[accessor.Count];
