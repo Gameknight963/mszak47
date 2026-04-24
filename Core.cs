@@ -3,6 +3,7 @@ using MelonLoader.Utils;
 using UnityEngine;
 using VGltf;
 using InventoryFramework;
+using Il2CppDG.Tweening;
 
 [assembly: MelonInfo(typeof(mszguns.Core), "Miside Zero AK47", "1.0.0", "gameknight963")]
 
@@ -15,6 +16,8 @@ namespace mszguns
 
         GameObject? gun;
         const string itemId = "ak47";
+        readonly Vector3 normalPosition = new(0.15f, -0.17f, 0.08f);
+        readonly Vector3 adsPositon = new(-0.0037f, -0.115f, 0.08f);
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
@@ -26,15 +29,39 @@ namespace mszguns
 
             gun.transform.eulerAngles = t.eulerAngles;
             gun.transform.position = t.position;
-            gun.transform.localPosition += new Vector3(0.15f, -0.17f, 0.08f);
+            gun.transform.localPosition += normalPosition;
             gun.active = false;
         }
+
+        public override void OnUpdate()
+        {
+            if (gun == null) return;
+            if (InventoryManager.Instance.SelectedItem?.Definition.Id != itemId) return;
+
+            if (Input.GetMouseButtonDown(1))
+            {
+                gun.transform.DOKill();
+
+                gun.transform.DOLocalMove(adsPositon, 0.2f)
+                    .SetEase(Ease.OutQuad);
+            }
+
+            if (Input.GetMouseButtonUp(1))
+            {
+                gun.transform.DOKill();
+
+                gun.transform.DOLocalMove(normalPosition, 0.2f)
+                    .SetEase(Ease.OutQuad);
+            }
+        }
+
 
         public override void OnInitializeMelon()
         {
             InventoryManager.Instance.RegisterItem(new ItemDefinition(itemId, "AK47"));
             InventoryManager.Instance.PlayerInventory.AddItem(itemId);
             InventoryManager.Instance.OnItemSelected += Instance_OnItemSelected;
+
         }
 
         private void Instance_OnItemSelected(InventoryItem? item)
