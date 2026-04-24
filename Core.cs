@@ -1,5 +1,4 @@
-﻿using Il2CppMS.Internal.Xml.XPath;
-using MelonLoader;
+﻿using MelonLoader;
 using MelonLoader.Utils;
 using UnityEngine;
 using VGltf;
@@ -11,33 +10,42 @@ namespace mszguns
     public class Core : MelonMod
     {
         public static string ModResources { get; set; } = Path.Combine(MelonEnvironment.ModsDirectory, "mszguns");
-        public static string GunPath = Path.Combine(ModResources, "AK47.glb");
+        public static string GunPath { get; set; } = Path.Combine(ModResources, "ak47.glb");
+
+
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             if (sceneName != "Version 1.9 POST") return;
+            Transform t = Camera.main.transform;
+
             GameObject gun = LoadGun(GunPath);
+            gun.transform.parent = t;
+
+            gun.transform.eulerAngles = t.eulerAngles;
+            gun.transform.position = t.position;
+            gun.transform.localPosition += new Vector3(0.2f, -0.2f, 0.08f);
         }
 
         private GameObject LoadGun(string path)
         {
             GltfContainer container;
-            using (FileStream fs = new FileStream(path, FileMode.Open))
+            using (FileStream fs = new(path, FileMode.Open))
                 container = GltfContainer.FromGlb(fs);
 
-            GameObject root = new GameObject("Gun");
+            GameObject root = new("Gun");
 
             if (container.Gltf.Scene != null)
                 foreach (int nodeIndex in container.Gltf.Scenes[container.Gltf.Scene.Value].Nodes)
                     BuildNode(container, nodeIndex, root.transform);
 
-            root.transform.localScale = Vector3.one * 0.01f;
+            root.transform.localScale = Vector3.one * 0.001f;
             return root;
         }
 
         private void BuildNode(GltfContainer container, int nodeIndex, Transform parent)
         {
             VGltf.Types.Node node = container.Gltf.Nodes[nodeIndex];
-            GameObject go = new GameObject(node.Name ?? "Node");
+            GameObject go = new(node.Name ?? "Node");
             go.transform.SetParent(parent, false);
 
             if (node.Mesh != null)
@@ -45,7 +53,7 @@ namespace mszguns
                 (UnityEngine.Mesh mesh, int? materialIndex) = BuildMesh(container, node.Mesh.Value);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 MeshRenderer renderer = go.AddComponent<MeshRenderer>();
-                Material material = new Material(Shader.Find("Standard"));
+                Material material = new(Shader.Find("Standard"));
                 if (materialIndex != null)
                 {
                     Texture2D tex = LoadTexture(container, materialIndex.Value);
@@ -63,7 +71,7 @@ namespace mszguns
         private (UnityEngine.Mesh, int?) BuildMesh(GltfContainer container, int meshIndex)
         {
             VGltf.Types.Mesh gltfMesh = container.Gltf.Meshes[meshIndex];
-            UnityEngine.Mesh mesh = new UnityEngine.Mesh();
+            UnityEngine.Mesh mesh = new();
 
             VGltf.Types.Mesh.PrimitiveType prim = gltfMesh.Primitives[0];
 
@@ -112,7 +120,7 @@ namespace mszguns
             }
             else return null;
 
-            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            Texture2D tex = new(2, 2, TextureFormat.RGBA32, false);
             ImageConversion.LoadImage(tex, imageData);
             return tex;
         }
