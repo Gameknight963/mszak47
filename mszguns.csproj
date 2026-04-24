@@ -36,6 +36,9 @@
 	  <Reference Include="Assembly-CSharp">
 	    <HintPath>..\00_MSZ_DLLS\0.72\Assembly-CSharp.dll</HintPath>
 	  </Reference>
+	  <Reference Include="Il2CppDOTween">
+	    <HintPath>..\00_MSZ_DLLS\0.72\Il2CppDOTween.dll</HintPath>
+	  </Reference>
 	  <Reference Include="Il2CppInterop.Common">
 	    <HintPath>..\00_MSZ_DLLS\0.72\Il2CppInterop.Common.dll</HintPath>
 	  </Reference>
