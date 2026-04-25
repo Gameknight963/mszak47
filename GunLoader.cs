@@ -44,7 +44,7 @@ namespace mszguns
                 foreach (int nodeIndex in container.Gltf.Scenes[container.Gltf.Scene.Value].Nodes)
                     GltfHelpers.BuildNode(container, nodeIndex, root.transform);
 
-            root.transform.localScale = Vector3.one * 0.0005f;
+            root.transform.localScale = Vector3.one * 0.075f;
             return root;
         }
 
