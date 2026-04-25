@@ -5,8 +5,9 @@
         public string Id { get; set; } = "";
         public string DisplayName { get; set; } = "";
         public string ModelFile { get; set; } = "";
-        public string AudioFile { get; set; } = "";
-        public string IconFile { get; set; } = "";
+        public string? AudioFile { get; set; }
+        public string? IconFile { get; set; }
+        public string? HoleFile { get; set; }
         public float FireRate { get; set; } = 0.1f;
         public float AudioVolume { get; set; } = 0.5f;
 

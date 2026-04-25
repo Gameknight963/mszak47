@@ -27,6 +27,8 @@
 	<ItemGroup>
 		<Compile Include="AudioImporter.cs" />
 		<Compile Include="Core.cs" />
+		<Compile Include="Extensions.cs" />
+		<Compile Include="GltfHelpers.cs" />
 		<Compile Include="Grip.cs" />
 		<Compile Include="Gun.cs" />
 		<Compile Include="GunLoader.cs" />
