@@ -18,12 +18,15 @@ namespace mszguns
         public static string ModResources { get; set; } = Path.Combine(MelonEnvironment.ModsDirectory, "mszguns");
 
         List<Gun> guns = [];
-        GameObject? gun;
-        Gun? activeGun;
-        AudioClip? shot;
-        AudioSource? source;
-        SettingsManager? settingsManager;
+        List<GameObject> gunObjects = [];
+        List<AudioClip> gunShots = [];
+        List<AudioSource> gunSources = [];
 
+        Gun? activeGun;
+        GameObject? activeGunObject;
+        AudioSource? activeSource;
+
+        SettingsManager? settingsManager;
         Texture2D? bulletHoleTexture;
 
         float fireTimer = 0f;
@@ -45,45 +48,50 @@ namespace mszguns
             bulletHoleTexture.hideFlags = HideFlags.DontUnloadUnusedAsset;
         }
 
+        public override void OnLateInitializeMelon()
+        {
+            settingsManager = Il2Cpp.Void.instance.settings;
+        }
+
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             if (sceneName != "Version 1.9 POST") return;
 
-            LoggerInstance.Msg("finding settings manager");
-            settingsManager = GameObject.Find("PlayerData").GetComponent<SettingsManager>();
-
-            LoggerInstance.Msg("getting camera");
             Transform t = Camera.main.transform;
 
-            LoggerInstance.Msg("loading gun");
-            activeGun = guns[0];
-            gun = GunLoader.LoadGun(GunLoader.GetModelPath(ModResources, activeGun));
+            gunObjects.Clear();
+            gunShots.Clear();
+            gunSources.Clear();
 
-            LoggerInstance.Msg("setting transform");
-            gun.transform.parent = t;
-            gun.transform.eulerAngles = t.eulerAngles;
-            gun.transform.position = t.position;
-            gun.transform.localPosition += activeGun.NormalPosition.ToVector3();
-            gun.active = false;
+            foreach (Gun g in guns)
+            {
+                GameObject go = GunLoader.LoadGun(GunLoader.GetModelPath(ModResources, g));
+                go.transform.parent = t;
+                go.transform.eulerAngles = t.eulerAngles;
+                go.transform.position = t.position;
+                go.transform.localPosition += g.NormalPosition.ToVector3();
+                go.active = false;
 
-            LoggerInstance.Msg("loading audio");
-            shot = AudioImporter.Load(GunLoader.GetAudioPath(ModResources, activeGun));
-            source = gun.AddComponent<AudioSource>();
-            source.clip = shot;
-            source.volume = activeGun.AudioVolume;
+                AudioClip clip = AudioImporter.Load(GunLoader.GetAudioPath(ModResources, g));
+                AudioSource source = go.AddComponent<AudioSource>();
+                source.clip = clip;
+                source.volume = g.AudioVolume;
 
-            LoggerInstance.Msg("done");
+                gunObjects.Add(go);
+                gunShots.Add(clip);
+                gunSources.Add(source);
+            }
         }
 
         public override void OnUpdate()
         {
-            if (gun == null || activeGun == null) return;
+            if (activeGun == null || activeGunObject == null) return;
             if (InventoryManager.Instance.SelectedItem?.Definition.Id != activeGun.Id) return;
 
             if (Input.GetMouseButtonDown(1))
             {
                 DOTween.Kill(MoveTweenId);
-                gun.transform.DOLocalMove(activeGun.AdsPosition.ToVector3(), activeGun.AdsSpeed)
+                activeGunObject.transform.DOLocalMove(activeGun.AdsPosition.ToVector3(), activeGun.AdsSpeed)
                     .SetEase(Ease.OutQuad)
                     .SetId(MoveTweenId);
                 Camera.main.DOFieldOfView(activeGun.AdsFov, activeGun.AdsSpeed)
@@ -94,7 +102,7 @@ namespace mszguns
             if (Input.GetMouseButtonUp(1))
             {
                 DOTween.Kill(MoveTweenId);
-                gun.transform.DOLocalMove(activeGun.NormalPosition.ToVector3(), activeGun.AdsSpeed)
+                activeGunObject.transform.DOLocalMove(activeGun.NormalPosition.ToVector3(), activeGun.AdsSpeed)
                     .SetEase(Ease.OutQuad)
                     .SetId(MoveTweenId);
                 Camera.main.DOFieldOfView(settingsManager!.fov, activeGun.AdsSpeed)
@@ -104,19 +112,19 @@ namespace mszguns
 
             if (Input.GetMouseButton(0) && fireTimer <= 0)
             {
-                source!.PlayOneShot(shot);
+                activeSource!.PlayOneShot(gunShots[guns.IndexOf(activeGun)]);
                 fireTimer = activeGun.FireRate;
 
                 if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, activeGun.Range))
                     SpawnBulletHole(hit, bulletHoleTexture!, activeGun.BulletHoleDuration);
 
                 DOTween.Kill(RotateTweenId);
-                gun.transform.DOLocalRotate(activeGun.AdsAngle.ToVector3(), activeGun.RecoilKickDuration)
+                activeGunObject.transform.DOLocalRotate(activeGun.AdsAngle.ToVector3(), activeGun.RecoilKickDuration)
                     .SetEase(Ease.OutQuad)
                     .SetId(RotateTweenId)
                     .OnComplete((TweenCallback)(() =>
                     {
-                        gun.transform.DOLocalRotate(activeGun.NormalAngle.ToVector3(), activeGun.RecoilRecoverDuration)
+                        activeGunObject.transform.DOLocalRotate(activeGun.NormalAngle.ToVector3(), activeGun.RecoilRecoverDuration)
                             .SetEase(Ease.OutQuad)
                             .SetId(RotateTweenId);
                     }));
@@ -127,20 +135,27 @@ namespace mszguns
 
         private void Instance_OnItemSelected(InventoryItem? item)
         {
-            if (gun == null || Camera.main == null) return;
+            if (Camera.main == null) return;
+
+            foreach (GameObject go in gunObjects)
+                go.active = false;
 
             if (item == null)
             {
-                gun!.active = false;
+                activeGun = null;
+                activeGunObject = null;
+                activeSource = null;
                 Camera.main.fieldOfView = settingsManager!.fov;
                 return;
             }
 
-            Gun? selected = guns.FirstOrDefault(g => g.Id == item.Definition.Id);
-            if (selected == null) return;
+            int index = guns.FindIndex(g => g.Id == item.Definition.Id);
+            if (index == -1) return;
 
-            activeGun = selected;
-            gun!.active = true;
+            activeGun = guns[index];
+            activeGunObject = gunObjects[index];
+            activeSource = gunSources[index];
+            activeGunObject.active = true;
         }
 
         static void SpawnBulletHole(RaycastHit hit, Texture2D texture, float duration)
