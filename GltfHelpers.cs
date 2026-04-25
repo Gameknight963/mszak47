@@ -96,7 +96,7 @@ namespace mszguns
             {
                 float x = BitConverter.ToSingle(buffer, offset + i * 8);
                 float y = BitConverter.ToSingle(buffer, offset + i * 8 + 4);
-                result[i] = new Vector2(x, y);
+                result[i] = new Vector2(x, 1f - y);
             }
             return result;
         }
