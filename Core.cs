@@ -15,26 +15,8 @@ namespace mszguns
         // gunshot sound: https://www.youtube.com/watch?v=dMhAdVPt3bY
 
         public static string ModResources { get; set; } = Path.Combine(MelonEnvironment.ModsDirectory, "mszguns");
-        public static string HolePath { get; set; } = Path.Combine(ModResources, "hole.png");
 
-        static readonly List<Gun> guns =
-        [
-            new Gun
-        {
-            Id = "ak47",
-            DisplayName = "AK47",
-            ModelFile = "ak47.glb",
-            AudioFile = "ak47-shot.wav",
-            IconFile = "icon.png",
-            FireRate = 0.1f,
-            AudioVolume = 0.5f,
-            NormalPosition = [0.15f, -0.17f, 0.08f],
-            AdsPosition = [-0.0037f, -0.115f, 0.08f],
-            NormalAngle = [0f, 0f, 0f],
-            AdsAngle = [-15f, 0f, 0f],
-        }
-        ];
-
+        List<Gun> guns = [];
         GameObject? gun;
         Gun? activeGun;
         AudioClip? shot;
@@ -50,15 +32,15 @@ namespace mszguns
 
         public override void OnInitializeMelon()
         {
+            guns = GunLoader.LoadAll(ModResources);
+
             foreach (Gun g in guns)
-            {
-                InventoryManager.Instance.RegisterItem(new ItemDefinition(g.Id, g.DisplayName, LoadSprite(Path.Combine(ModResources, g.IconFile))));
-            }
+                InventoryManager.Instance.RegisterItem(new ItemDefinition(g.Id, g.DisplayName, LoadSprite(GunLoader.GetIconPath(ModResources, g))));
 
             InventoryManager.Instance.OnItemSelected += Instance_OnItemSelected;
 
             bulletHoleTexture = new(2, 2, TextureFormat.RGBA32, false);
-            ImageConversion.LoadImage(bulletHoleTexture, File.ReadAllBytes(HolePath));
+            ImageConversion.LoadImage(bulletHoleTexture, File.ReadAllBytes(GunLoader.GetDefaultHolePath(ModResources)));
             bulletHoleTexture.hideFlags = HideFlags.DontUnloadUnusedAsset;
         }
 
@@ -67,17 +49,16 @@ namespace mszguns
             if (sceneName != "Version 1.9 POST") return;
             Transform t = Camera.main.transform;
 
-            // load first gun by default, will be driven by selection later
             activeGun = guns[0];
 
-            gun = GunLoader.LoadGun(Path.Combine(ModResources, activeGun.ModelFile));
+            gun = GunLoader.LoadGun(GunLoader.GetModelPath(ModResources, activeGun));
             gun.transform.parent = t;
             gun.transform.eulerAngles = t.eulerAngles;
             gun.transform.position = t.position;
             gun.transform.localPosition += activeGun.NormalPosition.ToVector3();
             gun.active = false;
 
-            shot = AudioImporter.Load(Path.Combine(ModResources, activeGun.AudioFile));
+            shot = AudioImporter.Load(GunLoader.GetAudioPath(ModResources, activeGun));
             source = gun.AddComponent<AudioSource>();
             source.clip = shot;
             source.volume = activeGun.AudioVolume;
@@ -110,9 +91,7 @@ namespace mszguns
                 fireTimer = activeGun.FireRate;
 
                 if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, 100f))
-                {
                     SpawnBulletHole(hit, bulletHoleTexture!);
-                }
 
                 DOTween.Kill(RotateTweenId);
                 gun.transform.DOLocalRotate(activeGun.AdsAngle.ToVector3(), 0.05f)
