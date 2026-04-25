@@ -1,10 +1,10 @@
-﻿using Il2CppColorful;
-using Il2CppDG.Tweening;
+﻿using Il2CppDG.Tweening;
 using InventoryFramework;
 using MelonLoader;
 using MelonLoader.Utils;
+using NAudio.CoreAudioApi;
+using NAudio.Wave;
 using UnityEngine;
-using VGltf;
 
 [assembly: MelonInfo(typeof(mszguns.Core), "Miside Zero AK47", "1.0.0", "gameknight963")]
 
@@ -20,6 +20,7 @@ namespace mszguns
         public static string GunPath { get; set; } = Path.Combine(ModResources, "ak47.glb");
         public static string AudioPath { get; set; } = Path.Combine(ModResources, "ak47-shot.wav");
         public static string IconPath { get; set; } = Path.Combine(ModResources, "icon.png");
+        public static string HolePath { get; set; } = Path.Combine(ModResources, "hole.png");
 
 
         GameObject? gun;
@@ -31,6 +32,9 @@ namespace mszguns
         readonly Vector3 normalAngle = new(0f, 0f, 0f);
         readonly Vector3 adsAngle = new(-15f, 0f, 0f);
 
+        Texture2D? bulletHoleTexture;
+        const float bulletHoleDuration = 10f;
+
         float fireTimer = 0f;
         const float fireRate = 0.1f;
 
@@ -39,7 +43,7 @@ namespace mszguns
             if (sceneName != "Version 1.9 POST") return;
             Transform t = Camera.main.transform;
 
-            gun = LoadGun(GunPath);
+            gun = GunLoader.LoadGun(GunPath);
             gun.transform.parent = t;
 
             gun.transform.eulerAngles = t.eulerAngles;
@@ -82,6 +86,11 @@ namespace mszguns
                 source!.PlayOneShot(shot);
                 fireTimer = fireRate;
 
+                if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, 100f))
+                {
+                    SpawnBulletHole(hit, bulletHoleTexture!);
+                }
+
                 DOTween.Kill(RotateTweenId);
                 gun.transform.DOLocalRotate(adsAngle, 0.05f)
                     .SetEase(Ease.OutQuad)
@@ -101,9 +110,37 @@ namespace mszguns
         public override void OnInitializeMelon()
         {
             InventoryManager.Instance.RegisterItem(new ItemDefinition(itemId, "AK47", LoadSprite(IconPath)));
-            //InventoryManager.Instance.PlayerInventory.AddItem(itemId);
             InventoryManager.Instance.OnItemSelected += Instance_OnItemSelected;
 
+            bulletHoleTexture = new(2, 2, TextureFormat.RGBA32, false);
+            ImageConversion.LoadImage(bulletHoleTexture, File.ReadAllBytes(HolePath));
+            bulletHoleTexture.hideFlags = HideFlags.DontUnloadUnusedAsset;
+            //InventoryManager.Instance.PlayerInventory.AddItem(itemId);
+        }   
+
+        static void SpawnBulletHole(RaycastHit hit, Texture2D texture)
+        {
+            if (texture is null) throw new NullReferenceException();
+            GameObject hole = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            hole.name = "bullet hole";
+                
+            hole.transform.position = hit.point + hit.normal * 0.01f;
+            hole.transform.rotation = Quaternion.LookRotation(-hit.normal);
+            hole.transform.Rotate(0f, 0f, UnityEngine.Random.Range(0f, 360f));
+            hole.transform.localScale = Vector3.one * UnityEngine.Random.Range(0.1f, 0.3f);
+            hole.transform.SetParent(hit.transform, true);
+            UnityEngine.Object.Destroy(hole.GetComponent<MeshCollider>());
+
+            MeshRenderer renderer = hole.GetComponent<MeshRenderer>();
+
+            Material mat = new(Shader.Find("Unlit/Transparent"));
+            mat.SetTexture("_MainTex", texture);
+
+            renderer.material = mat;
+
+            renderer.material.DOColor(new Color(1f, 1f, 1f, 0f), 1f)
+                .SetDelay(bulletHoleDuration)
+                .OnComplete((TweenCallback)(() => UnityEngine.Object.Destroy(hole)));
         }
 
         private void Instance_OnItemSelected(InventoryItem? item)
@@ -123,154 +160,5 @@ namespace mszguns
                 new Vector2(0.5f, 0.5f)
             );
         }
-
-        private GameObject LoadGun(string path)
-        {
-            GltfContainer container;
-            using (FileStream fs = new(path, FileMode.Open))
-                container = GltfContainer.FromGlb(fs);
-
-            GameObject root = new("Gun");
-
-            if (container.Gltf.Scene != null)
-                foreach (int nodeIndex in container.Gltf.Scenes[container.Gltf.Scene.Value].Nodes)
-                    BuildNode(container, nodeIndex, root.transform);
-
-            root.transform.localScale = Vector3.one * 0.0005f;
-            return root;
-        }
-
-        private void BuildNode(GltfContainer container, int nodeIndex, Transform parent)
-        {
-            VGltf.Types.Node node = container.Gltf.Nodes[nodeIndex];
-            GameObject go = new(node.Name ?? "Node");
-            go.transform.SetParent(parent, false);
-
-            if (node.Mesh != null)
-            {
-                (UnityEngine.Mesh mesh, int? materialIndex) = BuildMesh(container, node.Mesh.Value);
-                go.AddComponent<MeshFilter>().sharedMesh = mesh;
-                MeshRenderer renderer = go.AddComponent<MeshRenderer>();
-                Material material = new(Shader.Find("Standard"));
-                if (materialIndex != null)
-                {
-                    Texture2D? tex = LoadTexture(container, materialIndex.Value);
-                    if (tex != null)
-                        material.mainTexture = tex;
-                }
-                renderer.material = material;
-            }
-
-            if (node.Children != null)
-                foreach (int child in node.Children)
-                    BuildNode(container, child, go.transform);
-        }
-
-        private (UnityEngine.Mesh, int?) BuildMesh(GltfContainer container, int meshIndex)
-        {
-            VGltf.Types.Mesh gltfMesh = container.Gltf.Meshes[meshIndex];
-            UnityEngine.Mesh mesh = new();
-
-            VGltf.Types.Mesh.PrimitiveType prim = gltfMesh.Primitives[0];
-
-            int posAccessorIndex = prim.Attributes["POSITION"];
-            Vector3[] vertices = ReadVec3Array(container, posAccessorIndex);
-            mesh.vertices = vertices;
-
-            if (prim.Attributes.ContainsKey("TEXCOORD_0"))
-            {
-                int uvAccessorIndex = prim.Attributes["TEXCOORD_0"];
-                Vector2[] uvs = ReadVec2Array(container, uvAccessorIndex);
-                mesh.uv = uvs;
-            }
-
-            if (prim.Indices != null)
-            {
-                int[] indices = ReadIntArray(container, prim.Indices.Value);
-                mesh.triangles = indices;
-            }
-
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            return (mesh, prim.Material);
-        }
-
-        private Texture2D? LoadTexture(GltfContainer container, int materialIndex)
-        {
-            VGltf.Types.Material mat = container.Gltf.Materials[materialIndex];
-
-            if (mat.PbrMetallicRoughness?.BaseColorTexture == null) return null;
-
-            int textureIndex = mat.PbrMetallicRoughness.BaseColorTexture.Index;
-            VGltf.Types.Texture texture = container.Gltf.Textures[textureIndex];
-
-            if (texture.Source == null) return null;
-
-            VGltf.Types.Image image = container.Gltf.Images[texture.Source.Value];
-
-            byte[] imageData;
-            if (image.BufferView != null)
-            {
-                VGltf.Types.BufferView view = container.Gltf.BufferViews[image.BufferView.Value];
-                byte[] buffer = container.Buffer.Payload.ToArray();
-                imageData = new byte[view.ByteLength];
-                Array.Copy(buffer, view.ByteOffset, imageData, 0, view.ByteLength);
-            }
-            else return null;
-
-            Texture2D tex = new(2, 2, TextureFormat.RGBA32, false);
-            ImageConversion.LoadImage(tex, imageData);
-            return tex;
-        }
-
-        private Vector2[] ReadVec2Array(GltfContainer container, int accessorIndex)
-        {
-            VGltf.Types.Accessor accessor = container.Gltf.Accessors[accessorIndex];
-            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView!.Value];
-            byte[] buffer = container.Buffer.Payload.ToArray();
-            int offset = view.ByteOffset + accessor.ByteOffset;
-            Vector2[] result = new Vector2[accessor.Count];
-            for (int i = 0; i < accessor.Count; i++)
-            {
-                float x = BitConverter.ToSingle(buffer, offset + i * 8);
-                float y = BitConverter.ToSingle(buffer, offset + i * 8 + 4);
-                result[i] = new Vector2(x, y);
-            }
-            return result;
-        }
-
-        private Vector3[] ReadVec3Array(GltfContainer container, int accessorIndex)
-        {
-            VGltf.Types.Accessor accessor = container.Gltf.Accessors[accessorIndex];
-            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView!.Value];
-            byte[] buffer = container.Buffer.Payload.ToArray();
-            int offset = view.ByteOffset + accessor.ByteOffset;
-            Vector3[] result = new Vector3[accessor.Count];
-            for (int i = 0; i < accessor.Count; i++)
-            {
-                float x = BitConverter.ToSingle(buffer, offset + i * 12);
-                float y = BitConverter.ToSingle(buffer, offset + i * 12 + 4);
-                float z = BitConverter.ToSingle(buffer, offset + i * 12 + 8);
-                result[i] = new Vector3(x, y, z);
-            }
-            return result;
-        }
-
-        private int[] ReadIntArray(GltfContainer container, int accessorIndex)
-        {
-            VGltf.Types.Accessor accessor = container.Gltf.Accessors[accessorIndex];
-            VGltf.Types.BufferView view = container.Gltf.BufferViews[accessor.BufferView!.Value];
-            byte[] buffer = container.Buffer.Payload.ToArray();
-            int offset = view.ByteOffset + accessor.ByteOffset;
-            int[] result = new int[accessor.Count];
-            for (int i = 0; i < accessor.Count; i++)
-            {
-                if (accessor.ComponentType == VGltf.Types.Accessor.ComponentTypeEnum.UNSIGNED_SHORT)
-                    result[i] = BitConverter.ToUInt16(buffer, offset + i * 2);
-                else if (accessor.ComponentType == VGltf.Types.Accessor.ComponentTypeEnum.UNSIGNED_INT)
-                    result[i] = (int)BitConverter.ToUInt32(buffer, offset + i * 4);
-            }
-            return result;
-        }
-    }
+    } 
 }

@@ -21,8 +21,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="ak-icon.blend" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Compile Include="AudioImporter.cs" />
 		<Compile Include="Core.cs" />
+		<Compile Include="GunLoader.cs" />
 		<Content Include="Directory.Build.props" />
 	</ItemGroup>
 
