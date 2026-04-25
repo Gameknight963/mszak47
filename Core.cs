@@ -2,8 +2,6 @@
 using InventoryFramework;
 using MelonLoader;
 using MelonLoader.Utils;
-using NAudio.CoreAudioApi;
-using NAudio.Wave;
 using UnityEngine;
 
 [assembly: MelonInfo(typeof(mszguns.Core), "Miside Zero AK47", "1.0.0", "gameknight963")]
