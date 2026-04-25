@@ -1,9 +1,10 @@
-﻿using MelonLoader;
+﻿using Il2CppColorful;
+using Il2CppDG.Tweening;
+using InventoryFramework;
+using MelonLoader;
 using MelonLoader.Utils;
 using UnityEngine;
 using VGltf;
-using InventoryFramework;
-using Il2CppDG.Tweening;
 
 [assembly: MelonInfo(typeof(mszguns.Core), "Miside Zero AK47", "1.0.0", "gameknight963")]
 
@@ -13,11 +14,19 @@ namespace mszguns
     {
         public static string ModResources { get; set; } = Path.Combine(MelonEnvironment.ModsDirectory, "mszguns");
         public static string GunPath { get; set; } = Path.Combine(ModResources, "ak47.glb");
+        public static string AudioPath { get; set; } = Path.Combine(ModResources, "ak47-shot.wav");
 
         GameObject? gun;
+        AudioClip? shot;
+        AudioSource? source;
         const string itemId = "ak47";
         readonly Vector3 normalPosition = new(0.15f, -0.17f, 0.08f);
-        readonly Vector3 adsPositon = new(-0.0037f, -0.115f, 0.08f);
+        readonly Vector3 adsPosition = new(-0.0037f, -0.115f, 0.08f);
+        readonly Vector3 normalAngle = new(0f, 0f, 0f);
+        readonly Vector3 adsAngle = new(-15f, 0f, 0f);
+
+        float fireTimer = 0f;
+        const float fireRate = 0.1f;
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
@@ -31,7 +40,15 @@ namespace mszguns
             gun.transform.position = t.position;
             gun.transform.localPosition += normalPosition;
             gun.active = false;
+
+            shot = AudioImporter.Load(AudioPath);
+            source = gun.AddComponent<AudioSource>();
+            source.clip = shot;
+            source.volume = 0.5f;
         }
+
+        private const string MoveTweenId = "gun_move";
+        private const string RotateTweenId = "gun_rotate";
 
         public override void OnUpdate()
         {
@@ -40,19 +57,38 @@ namespace mszguns
 
             if (Input.GetMouseButtonDown(1))
             {
-                gun.transform.DOKill();
-
-                gun.transform.DOLocalMove(adsPositon, 0.2f)
-                    .SetEase(Ease.OutQuad);
+                DOTween.Kill(MoveTweenId);
+                gun.transform.DOLocalMove(adsPosition, 0.2f)
+                    .SetEase(Ease.OutQuad)
+                    .SetId(MoveTweenId);
             }
 
             if (Input.GetMouseButtonUp(1))
             {
-                gun.transform.DOKill();
-
+                DOTween.Kill(MoveTweenId);
                 gun.transform.DOLocalMove(normalPosition, 0.2f)
-                    .SetEase(Ease.OutQuad);
+                    .SetEase(Ease.OutQuad)
+                    .SetId(MoveTweenId);
             }
+
+            if (Input.GetMouseButton(0) && fireTimer <= 0)
+            {
+                source!.PlayOneShot(shot);
+                fireTimer = fireRate;
+
+                DOTween.Kill(RotateTweenId);
+                gun.transform.DOLocalRotate(adsAngle, 0.05f)
+                    .SetEase(Ease.OutQuad)
+                    .SetId(RotateTweenId)
+                    .OnComplete((TweenCallback)(() =>
+                    {
+                        gun.transform.DOLocalRotate(normalAngle, 0.15f)
+                            .SetEase(Ease.OutQuad)
+                            .SetId(RotateTweenId);
+                    }));
+            }
+
+            fireTimer -= Time.deltaTime;
         }
 
 

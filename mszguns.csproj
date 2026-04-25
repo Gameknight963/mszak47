@@ -21,11 +21,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Compile Include="AudioImporter.cs" />
 		<Compile Include="Core.cs" />
 		<Content Include="Directory.Build.props" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="NAudio" Version="2.3.0" />
 	  <PackageReference Include="VGltf" Version="0.2.25" />
 	</ItemGroup>
 
