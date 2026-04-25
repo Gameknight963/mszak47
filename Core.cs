@@ -12,6 +12,10 @@ namespace mszguns
 {
     public class Core : MelonMod
     {
+        // gun model credit: https://sketchfab.com/3d-models/ak-47-384565b1779c450b90397232163e4e6d
+        // bullet hole credit: https://opengameart.org/content/bullet-decal
+        // gunshot sound: https://www.youtube.com/watch?v=dMhAdVPt3bY
+
         public static string ModResources { get; set; } = Path.Combine(MelonEnvironment.ModsDirectory, "mszguns");
         public static string GunPath { get; set; } = Path.Combine(ModResources, "ak47.glb");
         public static string AudioPath { get; set; } = Path.Combine(ModResources, "ak47-shot.wav");
