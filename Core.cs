@@ -15,6 +15,8 @@ namespace mszguns
         public static string ModResources { get; set; } = Path.Combine(MelonEnvironment.ModsDirectory, "mszguns");
         public static string GunPath { get; set; } = Path.Combine(ModResources, "ak47.glb");
         public static string AudioPath { get; set; } = Path.Combine(ModResources, "ak47-shot.wav");
+        public static string IconPath { get; set; } = Path.Combine(ModResources, "icon.png");
+
 
         GameObject? gun;
         AudioClip? shot;
@@ -94,8 +96,8 @@ namespace mszguns
 
         public override void OnInitializeMelon()
         {
-            InventoryManager.Instance.RegisterItem(new ItemDefinition(itemId, "AK47"));
-            InventoryManager.Instance.PlayerInventory.AddItem(itemId);
+            InventoryManager.Instance.RegisterItem(new ItemDefinition(itemId, "AK47", LoadSprite(IconPath)));
+            //InventoryManager.Instance.PlayerInventory.AddItem(itemId);
             InventoryManager.Instance.OnItemSelected += Instance_OnItemSelected;
 
         }
@@ -103,6 +105,19 @@ namespace mszguns
         private void Instance_OnItemSelected(InventoryItem? item)
         {
             gun!.active = item != null && item.Definition.Id == itemId;
+        }
+
+        public Sprite LoadSprite(string path)
+        {
+            byte[] bytes = File.ReadAllBytes(path);
+            Texture2D texture = new(2, 2, TextureFormat.RGBA32, false);
+            ImageConversion.LoadImage(texture, bytes);
+
+            return Sprite.Create(
+                texture,
+                new Rect(0, 0, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f)
+            );
         }
 
         private GameObject LoadGun(string path)
