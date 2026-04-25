@@ -25,5 +25,7 @@
         public float[] AdsPosition { get; set; } = [0f, 0f, 0f];
         public float[] NormalAngle { get; set; } = [0f, 0f, 0f];
         public float[] AdsAngle { get; set; } = [0f, 0f, 0f];
+
+        public ShotEffect Effect { get; set; } = ShotEffect.Normal;
     }
 }
