@@ -1,4 +1,5 @@
-﻿using Il2CppDG.Tweening;
+﻿using Il2Cpp;
+using Il2CppDG.Tweening;
 using InventoryFramework;
 using MelonLoader;
 using MelonLoader.Utils;
@@ -21,9 +22,9 @@ namespace mszguns
         Gun? activeGun;
         AudioClip? shot;
         AudioSource? source;
+        SettingsManager? settingsManager;
 
         Texture2D? bulletHoleTexture;
-        const float bulletHoleDuration = 10f;
 
         float fireTimer = 0f;
 
@@ -47,21 +48,31 @@ namespace mszguns
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             if (sceneName != "Version 1.9 POST") return;
+
+            LoggerInstance.Msg("finding settings manager");
+            settingsManager = GameObject.Find("PlayerData").GetComponent<SettingsManager>();
+
+            LoggerInstance.Msg("getting camera");
             Transform t = Camera.main.transform;
 
+            LoggerInstance.Msg("loading gun");
             activeGun = guns[0];
-
             gun = GunLoader.LoadGun(GunLoader.GetModelPath(ModResources, activeGun));
+
+            LoggerInstance.Msg("setting transform");
             gun.transform.parent = t;
             gun.transform.eulerAngles = t.eulerAngles;
             gun.transform.position = t.position;
             gun.transform.localPosition += activeGun.NormalPosition.ToVector3();
             gun.active = false;
 
+            LoggerInstance.Msg("loading audio");
             shot = AudioImporter.Load(GunLoader.GetAudioPath(ModResources, activeGun));
             source = gun.AddComponent<AudioSource>();
             source.clip = shot;
             source.volume = activeGun.AudioVolume;
+
+            LoggerInstance.Msg("done");
         }
 
         public override void OnUpdate()
@@ -72,7 +83,10 @@ namespace mszguns
             if (Input.GetMouseButtonDown(1))
             {
                 DOTween.Kill(MoveTweenId);
-                gun.transform.DOLocalMove(activeGun.AdsPosition.ToVector3(), 0.2f)
+                gun.transform.DOLocalMove(activeGun.AdsPosition.ToVector3(), activeGun.AdsSpeed)
+                    .SetEase(Ease.OutQuad)
+                    .SetId(MoveTweenId);
+                Camera.main.DOFieldOfView(activeGun.AdsFov, activeGun.AdsSpeed)
                     .SetEase(Ease.OutQuad)
                     .SetId(MoveTweenId);
             }
@@ -80,7 +94,10 @@ namespace mszguns
             if (Input.GetMouseButtonUp(1))
             {
                 DOTween.Kill(MoveTweenId);
-                gun.transform.DOLocalMove(activeGun.NormalPosition.ToVector3(), 0.2f)
+                gun.transform.DOLocalMove(activeGun.NormalPosition.ToVector3(), activeGun.AdsSpeed)
+                    .SetEase(Ease.OutQuad)
+                    .SetId(MoveTweenId);
+                Camera.main.DOFieldOfView(settingsManager!.fov, activeGun.AdsSpeed)
                     .SetEase(Ease.OutQuad)
                     .SetId(MoveTweenId);
             }
@@ -90,16 +107,16 @@ namespace mszguns
                 source!.PlayOneShot(shot);
                 fireTimer = activeGun.FireRate;
 
-                if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, 100f))
-                    SpawnBulletHole(hit, bulletHoleTexture!);
+                if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, activeGun.Range))
+                    SpawnBulletHole(hit, bulletHoleTexture!, activeGun.BulletHoleDuration);
 
                 DOTween.Kill(RotateTweenId);
-                gun.transform.DOLocalRotate(activeGun.AdsAngle.ToVector3(), 0.05f)
+                gun.transform.DOLocalRotate(activeGun.AdsAngle.ToVector3(), activeGun.RecoilKickDuration)
                     .SetEase(Ease.OutQuad)
                     .SetId(RotateTweenId)
                     .OnComplete((TweenCallback)(() =>
                     {
-                        gun.transform.DOLocalRotate(activeGun.NormalAngle.ToVector3(), 0.15f)
+                        gun.transform.DOLocalRotate(activeGun.NormalAngle.ToVector3(), activeGun.RecoilRecoverDuration)
                             .SetEase(Ease.OutQuad)
                             .SetId(RotateTweenId);
                     }));
@@ -110,9 +127,12 @@ namespace mszguns
 
         private void Instance_OnItemSelected(InventoryItem? item)
         {
+            if (gun == null || Camera.main == null) return;
+
             if (item == null)
             {
                 gun!.active = false;
+                Camera.main.fieldOfView = settingsManager!.fov;
                 return;
             }
 
@@ -123,7 +143,7 @@ namespace mszguns
             gun!.active = true;
         }
 
-        static void SpawnBulletHole(RaycastHit hit, Texture2D texture)
+        static void SpawnBulletHole(RaycastHit hit, Texture2D texture, float duration)
         {
             GameObject hole = GameObject.CreatePrimitive(PrimitiveType.Quad);
             hole.name = "bullet hole";
@@ -140,7 +160,7 @@ namespace mszguns
             renderer.material = mat;
 
             renderer.material.DOColor(new Color(1f, 1f, 1f, 0f), 1f)
-                .SetDelay(bulletHoleDuration)
+                .SetDelay(duration)
                 .OnComplete((TweenCallback)(() => UnityEngine.Object.Destroy(hole)));
         }
 
