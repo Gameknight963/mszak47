@@ -1,0 +1,14 @@
+holo sight
+https://www.deviantart.com/jakubtokaj/art/EOTech-HWS-552-Reticle-1042658478
+
+gun model:
+https://sketchfab.com/3d-models/ak-47-384565b1779c450b90397232163e4e6d
+
+bullet hole credit:
+https://opengameart.org/content/bullet-decal
+
+gunshot sound:
+https://www.youtube.com/watch?v=dMhAdVPt3bY
+
+cube launcher sound:
+https://freesound.org/people/LeMudCrab/sounds/163458/
