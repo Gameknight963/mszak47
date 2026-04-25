@@ -27,6 +27,8 @@
 	<ItemGroup>
 		<Compile Include="AudioImporter.cs" />
 		<Compile Include="Core.cs" />
+		<Compile Include="Grip.cs" />
+		<Compile Include="Gun.cs" />
 		<Compile Include="GunLoader.cs" />
 		<Content Include="Directory.Build.props" />
 	</ItemGroup>
