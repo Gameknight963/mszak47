@@ -52,6 +52,10 @@ namespace mszguns
             if (prim.Indices != null)
             {
                 int[] indices = ReadIntArray(container, prim.Indices.Value);
+                for (int i = 0; i < indices.Length; i += 3)
+                {
+                    (indices[i + 2], indices[i]) = (indices[i], indices[i + 2]);
+                }
                 mesh.triangles = indices;
             }
 
@@ -113,7 +117,7 @@ namespace mszguns
                 float x = BitConverter.ToSingle(buffer, offset + i * 12);
                 float y = BitConverter.ToSingle(buffer, offset + i * 12 + 4);
                 float z = BitConverter.ToSingle(buffer, offset + i * 12 + 8);
-                result[i] = new Vector3(x, y, z);
+                result[i] = new Vector3(-x, y, z);
             }
             return result;
         }
