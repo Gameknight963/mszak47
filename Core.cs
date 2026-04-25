@@ -76,6 +76,7 @@ namespace mszguns
                 AudioSource source = go.AddComponent<AudioSource>();
                 source.clip = clip;
                 source.volume = g.AudioVolume;
+                source.playOnAwake = false;
 
                 gunObjects.Add(go);
                 gunShots.Add(clip);
@@ -112,25 +113,56 @@ namespace mszguns
 
             if (Input.GetMouseButton(0) && fireTimer <= 0)
             {
-                activeSource!.PlayOneShot(gunShots[guns.IndexOf(activeGun)]);
                 fireTimer = activeGun.FireRate;
-
-                if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, activeGun.Range))
-                    SpawnBulletHole(hit, bulletHoleTexture!, activeGun.BulletHoleDuration);
-
-                DOTween.Kill(RotateTweenId);
-                activeGunObject.transform.DOLocalRotate(activeGun.AdsAngle.ToVector3(), activeGun.RecoilKickDuration)
-                    .SetEase(Ease.OutQuad)
-                    .SetId(RotateTweenId)
-                    .OnComplete((TweenCallback)(() =>
-                    {
-                        activeGunObject.transform.DOLocalRotate(activeGun.NormalAngle.ToVector3(), activeGun.RecoilRecoverDuration)
-                            .SetEase(Ease.OutQuad)
-                            .SetId(RotateTweenId);
-                    }));
+                Shoot(activeGun, activeGunObject, activeSource!, bulletHoleTexture!);
             }
 
             fireTimer -= Time.deltaTime;
+        }
+
+        void Shoot(Gun gun, GameObject gunObject, AudioSource source, Texture2D holeTexture)
+        {
+            source.PlayOneShot(source.clip);
+
+            switch (gun.Effect)
+            {
+                case ShotEffect.Normal:
+                    if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit normalHit, gun.Range))
+                        SpawnBulletHole(normalHit, holeTexture, gun.BulletHoleDuration);
+                    break;
+
+                case ShotEffect.Shotgun:
+                    Enumerable.Range(0, 8).ToList().ForEach(_ =>
+                    {
+                        Vector3 spread = Camera.main.transform.forward + new Vector3(
+                            UnityEngine.Random.Range(-0.1f, 0.1f),
+                            UnityEngine.Random.Range(-0.1f, 0.1f),
+                            0f);
+                        if (Physics.Raycast(Camera.main.transform.position, spread, out RaycastHit shotgunHit, gun.Range))
+                            SpawnBulletHole(shotgunHit, holeTexture, gun.BulletHoleDuration);
+                    });
+                    break;
+
+                case ShotEffect.Cube:
+                    GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cube.transform.position = Camera.main.transform.position + Camera.main.transform.forward;
+                    cube.transform.localScale = Vector3.one * 0.2f;
+                    Rigidbody rb = cube.AddComponent<Rigidbody>();
+                    rb.velocity = Camera.main.transform.forward * 20f;
+                    UnityEngine.Object.Destroy(cube, 5f);
+                    break;
+            }
+
+            DOTween.Kill(RotateTweenId);
+            gunObject.transform.DOLocalRotate(gun.AdsAngle.ToVector3(), gun.RecoilKickDuration)
+                .SetEase(Ease.OutQuad)
+                .SetId(RotateTweenId)
+                .OnComplete((TweenCallback)(() =>
+                {
+                    gunObject.transform.DOLocalRotate(gun.NormalAngle.ToVector3(), gun.RecoilRecoverDuration)
+                        .SetEase(Ease.OutQuad)
+                        .SetId(RotateTweenId);
+                }));
         }
 
         private void Instance_OnItemSelected(InventoryItem? item)
@@ -156,6 +188,7 @@ namespace mszguns
             activeGunObject = gunObjects[index];
             activeSource = gunSources[index];
             activeGunObject.active = true;
+            fireTimer = activeGun.FireRate;
         }
 
         static void SpawnBulletHole(RaycastHit hit, Texture2D texture, float duration)

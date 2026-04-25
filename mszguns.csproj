@@ -32,6 +32,7 @@
 		<Compile Include="Grip.cs" />
 		<Compile Include="Gun.cs" />
 		<Compile Include="GunLoader.cs" />
+		<Compile Include="ShotEffect.cs" />
 		<Content Include="Directory.Build.props" />
 	</ItemGroup>
 
