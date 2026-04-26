@@ -46,5 +46,4 @@ namespace mszguns
             return sampleList.ToArray();
         }
     }
-
 }
