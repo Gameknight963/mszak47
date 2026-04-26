@@ -189,7 +189,7 @@ namespace mszguns
             activeGunObject = gunObjects[index];
             activeSource = gunSources[index];
             activeGunObject.active = true;
-            fireTimer = activeGun.FireRate;
+            fireTimer = 0;
         }
 
         static void SpawnBulletHole(RaycastHit hit, Texture2D texture, float duration)
