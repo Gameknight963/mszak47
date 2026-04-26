@@ -154,7 +154,7 @@ namespace mszguns
             }
 
             DOTween.Kill(RotateTweenId);
-            gunObject.transform.DOLocalRotate(gun.AdsAngle.ToVector3(), gun.RecoilKickDuration)
+            gunObject.transform.DOLocalRotate(gun.RecoilAngle.ToVector3(), gun.RecoilKickDuration)
                 .SetEase(Ease.OutQuad)
                 .SetId(RotateTweenId)
                 .OnComplete((TweenCallback)(() =>
