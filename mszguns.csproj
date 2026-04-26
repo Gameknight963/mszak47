@@ -32,6 +32,7 @@
 		<Compile Include="Grip.cs" />
 		<Compile Include="Gun.cs" />
 		<Compile Include="GunLoader.cs" />
+		<Compile Include="GunNetworking.cs" />
 		<Compile Include="ShotEffect.cs" />
 		<Content Include="Directory.Build.props" />
 	</ItemGroup>
@@ -77,6 +78,9 @@
 	  </Reference>
 	  <Reference Include="MelonLoader">
 	    <HintPath>..\00_MSZ_DLLS\0.72\MelonLoader.dll</HintPath>
+	  </Reference>
+	  <Reference Include="MultiSide.shared">
+	    <HintPath>..\launcherdotnet\bin\Debug\net10.0-windows\games\adding bhop to msz_c88722bf-25f5-4e81-924a-5f62d9d41032\Mods\MultiSide.shared.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Newtonsoft.Json">
 	    <HintPath>..\00_MSZ_DLLS\0.72\Newtonsoft.Json.dll</HintPath>
