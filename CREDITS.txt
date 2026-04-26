@@ -1,7 +1,7 @@
 holo sight
 https://www.deviantart.com/jakubtokaj/art/EOTech-HWS-552-Reticle-1042658478
 
-gun model:
+ak47 model:
 https://sketchfab.com/3d-models/ak-47-384565b1779c450b90397232163e4e6d
 
 bullet hole credit:
@@ -12,3 +12,6 @@ https://www.youtube.com/watch?v=dMhAdVPt3bY
 
 cube launcher sound:
 https://freesound.org/people/LeMudCrab/sounds/163458/
+
+mossberg 590A1 model:
+https://sketchfab.com/3d-models/shotgun-mossberg-590a1-afede3b8476f46cc8542a9457778f7aa
