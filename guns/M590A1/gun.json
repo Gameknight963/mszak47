@@ -2,7 +2,7 @@
   "Id": "M590A1",
   "DisplayName": "M590A1",
   "ModelFile": "M590A1.glb",
-  "AudioFile": "ak47-shot.wav",
+  "AudioFile": "shotgun-shot.wav",
   "IconFile": "icon.png",
   "FireRate": 1.5,
   "AudioVolume": 0.5,
