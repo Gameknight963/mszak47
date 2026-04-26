@@ -14,8 +14,8 @@
   "RecoilRecoverDuration": 0.15,
   "BulletHoleDuration": 10.0,
   "NormalPosition": [0.15, -0.17, 0.08],
-  "AdsPosition": [-0.0037, -0.115, 0.08],
+  "AdsPosition": [0.1248, -0.095, -0.1209],
   "NormalAngle": [0, 0, 0],
-  "AdsAngle": [-15, 0, 0],
+  "RecoilAngle": [-15, 0, 0],
   "Effect": "Cube",
 }
