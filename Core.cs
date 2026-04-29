@@ -37,6 +37,7 @@ namespace mszguns
         private const string MoveTweenId = "gun_move";
         private const string RotateTweenId = "gun_rotate";
 
+
         public override void OnInitializeMelon()
         {
             guns = GunLoader.LoadAll(ModResources);
@@ -50,7 +51,7 @@ namespace mszguns
             ImageConversion.LoadImage(BulletHoleTexture, File.ReadAllBytes(GunLoader.GetDefaultHolePath(ModResources)));
             BulletHoleTexture.hideFlags = HideFlags.DontUnloadUnusedAsset;
 
-            GunNetworking.Init(ModResources, guns);
+            GunNetworking.Init(ModResources, guns, LoggerInstance);
         }
 
         public override void OnLateInitializeMelon()
@@ -134,7 +135,7 @@ namespace mszguns
                     if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit normalHit, gun.Range))
                     {
                         SpawnBulletHole(normalHit, holeTexture, gun.BulletHoleDuration);
-                        GunNetworking.SendShot(ShotEffect.Normal, normalHit.point, normalHit.normal, gun.BulletHoleDuration);
+                        GunNetworking.Instance?.SendShot(ShotEffect.Normal, normalHit.point, normalHit.normal, gun.BulletHoleDuration);
                     }
                     break;
                 case ShotEffect.Shotgun:
@@ -148,7 +149,7 @@ namespace mszguns
                         if (Physics.Raycast(Camera.main.transform.position, spread, out RaycastHit shotgunHit, gun.Range))
                         {
                             SpawnBulletHole(shotgunHit, holeTexture, gun.BulletHoleDuration);
-                            GunNetworking.SendShot(ShotEffect.Shotgun, shotgunHit.point, shotgunHit.normal, gun.BulletHoleDuration);
+                            GunNetworking.Instance?.SendShot(ShotEffect.Shotgun, shotgunHit.point, shotgunHit.normal, gun.BulletHoleDuration);
                         }
                     });
                     break;
@@ -159,7 +160,7 @@ namespace mszguns
                     Rigidbody rb = cube.AddComponent<Rigidbody>();
                     rb.velocity = Camera.main.transform.forward * 20f;
                     UnityEngine.Object.Destroy(cube, 5f);
-                    GunNetworking.SendShot(ShotEffect.Cube,
+                    GunNetworking.Instance?.SendShot(ShotEffect.Cube,
                         Camera.main.transform.position + Camera.main.transform.forward,
                         Camera.main.transform.forward,
                         0f);
@@ -188,7 +189,7 @@ namespace mszguns
                 activeGunObject = null;
                 activeSource = null;
                 Camera.main.fieldOfView = settingsManager!.fov;
-                GunNetworking.SendEquip(null);
+                GunNetworking.Instance?.SendEquip(null);
                 return;
             }
             int index = guns.FindIndex(g => g.Id == item.Definition.Id);
@@ -198,7 +199,7 @@ namespace mszguns
             activeSource = gunSources[index];
             activeGunObject.active = true;
             fireTimer = 0;
-            GunNetworking.SendEquip(activeGun.Id);
+            GunNetworking.Instance?.SendEquip(activeGun.Id);
         }
 
         internal static void SpawnBulletHole(Vector3 point, Vector3 normal, Texture2D texture, float duration)

@@ -4,32 +4,39 @@ using UnityEngine;
 
 namespace mszguns
 {
-    public static class GunNetworking
+    public class GunNetworking
     {
-        private static bool _available;
+        public static GunNetworking? Instance { get; private set; }
 
-        private static Dictionary<int, string> _remoteGuns = new();
-        private static string _modResources = "";
-        private static List<Gun> _guns = new();
+        private readonly Dictionary<int, string> _remoteGuns = new();
+        private readonly Dictionary<int, Dictionary<string, GameObject>> _remoteGunObjects = new();
+        private readonly string _modResources;
+        private readonly List<Gun> _guns;
+        private MelonLogger.Instance? _logger;
 
-        private static Dictionary<int, Dictionary<string, GameObject>> _remoteGunObjects = new();
-
-        public static void Init(string modResources, List<Gun> guns)
+        private GunNetworking(string modResources, List<Gun> guns)
         {
             _modResources = modResources;
             _guns = guns;
-            _available = AppDomain.CurrentDomain.GetAssemblies()
-                .Any(a => a.GetName().Name == "Multiside.shared");
+        }
 
-            if (!_available) return;
-            InitNetwork();
+        public static void Init(string modResources, List<Gun> guns, MelonLogger.Instance logger)
+        {
+            bool available = AppDomain.CurrentDomain.GetAssemblies()
+                .Any(a => a.GetName().Name == "Multiside.shared");
+            if (!available) return;
+            Instance = new GunNetworking(modResources, guns);
+
+            Instance._logger = logger;
+            Instance._logger.Msg("Starting in Online mode");
+            Instance.InitNetwork();
         }
 
         // shot data layout: [0-2] position/hitPoint, [3-5] direction/hitNormal, [6] duration, [7] effect
         // for cube: position is spawn position, direction is forward
         // for normal/shotgun: missed shots are not sent
 
-        private static void InitNetwork()
+        private void InitNetwork()
         {
             if (NetworkRegistry.Provider != null)
             {
@@ -39,24 +46,27 @@ namespace mszguns
             NetworkRegistry.OnProviderRegistered += Subscribe;
         }
 
-        private static void Subscribe(INetworkProvider provider)
+        private void Subscribe(INetworkProvider provider)
         {
+            _logger?.Msg("GunNetworking: subscribing to network events");
+
             provider.OnReceived += (actor, channel, data) =>
             {
                 if (channel == "mszguns.equip")
                 {
                     string gunId = (string)data;
+                    _logger?.Msg($"GunNetworking: equip received from {actor}: '{gunId}'");
                     if (string.IsNullOrEmpty(gunId))
                         _remoteGuns.Remove(actor);
                     else
                         _remoteGuns[actor] = gunId;
-
                     GameObject? playerObj = provider.GetPlayerObject(actor);
-                    if (playerObj != null)
+                    if (playerObj == null)
+                        _logger?.Warning($"GunNetworking: no player object for actor {actor}");
+                    else
                         SetRemoteGun(actor, playerObj, gunId);
                     return;
                 }
-
                 if (channel != "mszguns.shot") return;
 
                 float[] d = (float[])data;
@@ -64,20 +74,19 @@ namespace mszguns
 
                 if (effect == ShotEffect.Cube)
                 {
-                    Vector3 spawnPos = new(d[0], d[1], d[2]);
-                    Vector3 spawnDir = new(d[3], d[4], d[5]);
-                    SpawnRemoteCube(spawnPos, spawnDir);
+                    SpawnRemoteCube(
+                        new(d[0], d[1], d[2]),
+                        new(d[3], d[4], d[5]));
                 }
                 else
                 {
-                    if (d.Length < 7) return; // missed shot, nothing to show
-                    Vector3 hitPoint = new(d[0], d[1], d[2]);
-                    Vector3 hitNormal = new(d[3], d[4], d[5]);
-                    float duration = d[6];
-
+                    if (d.Length < 7) return;
                     if (Core.BulletHoleTexture == null) return;
-                    Core.SpawnBulletHole(hitPoint, hitNormal, Core.BulletHoleTexture, duration);
-
+                    Core.SpawnBulletHole(
+                        new(d[0], d[1], d[2]),
+                        new(d[3], d[4], d[5]),
+                        Core.BulletHoleTexture,
+                        d[6]);
                     GameObject? playerObj = provider.GetPlayerObject(actor);
                     if (playerObj != null)
                         PlayRemoteShot(playerObj, actor);
@@ -86,33 +95,38 @@ namespace mszguns
 
             provider.OnPlayerLeft += actor =>
             {
+                _logger?.Msg($"GunNetworking: player {actor} left, cleaning up");
                 _remoteGuns.Remove(actor);
                 _remoteGunObjects.Remove(actor);
             };
 
             provider.OnRoomJoined += () =>
             {
+                _logger?.Msg($"GunNetworking: room joined, broadcasting equip: '{Core.ActiveGunId}'");
                 SendEquip(Core.ActiveGunId);
             };
 
             provider.OnPlayerJoined += actor =>
             {
+                _logger?.Msg($"GunNetworking: player {actor} joined, sending equip: '{Core.ActiveGunId}'");
                 if (!string.IsNullOrEmpty(Core.ActiveGunId))
-                    NetworkRegistry.Provider?.SendTo(actor, "mszguns.equip", Core.ActiveGunId);
+                    provider.SendTo(actor, "mszguns.equip", Core.ActiveGunId);
             };
         }
 
-        private static void SetRemoteGun(int actor, GameObject playerObj, string gunId)
+        private void SetRemoteGun(int actor, GameObject playerObj, string gunId)
         {
+            _logger?.Msg($"GunNetworking: setting remote gun for actor {actor}: '{gunId}'");
+
             if (_remoteGunObjects.TryGetValue(actor, out Dictionary<string, GameObject>? models))
             {
                 foreach (GameObject m in models.Values)
                     m.SetActive(false);
-
-                // if we already have this gun cached, just enable it
                 if (!string.IsNullOrEmpty(gunId) && models.TryGetValue(gunId, out GameObject? cached))
                 {
+                    _logger?.Msg($"GunNetworking: using cached model for '{gunId}'");
                     cached.SetActive(true);
+                    UpdateAudioClip(playerObj, gunId);
                     return;
                 }
             }
@@ -120,19 +134,54 @@ namespace mszguns
             if (string.IsNullOrEmpty(gunId)) return;
 
             Gun? gun = _guns.FirstOrDefault(g => g.Id == gunId);
-            if (gun == null) return;
+            if (gun == null)
+            {
+                _logger?.Warning($"GunNetworking: gun '{gunId}' not found in registry");
+                return;
+            }
 
-            // load and cache
+            _logger?.Msg($"GunNetworking: loading model for '{gunId}'");
             GameObject model = GunLoader.LoadGun(GunLoader.GetModelPath(_modResources, gun));
             model.name = "RemoteGun";
             Transform? camera = playerObj.transform.Find("Zero/PLAYER Armature/Rig Root/Hips/Spine/Chest/Neck2/Neck1/Head/CameraHoldHead/playerCamera");
-            model.transform.SetParent(camera != null ? camera : playerObj.transform, false);
+            if (camera == null)
+                _logger?.Warning($"GunNetworking: could not find camera transform on actor {actor}, parenting to root");
+            model.transform.SetParent(camera ?? playerObj.transform, false);
             model.transform.localPosition = gun.NormalPosition.ToVector3();
             model.transform.localEulerAngles = gun.NormalAngle.ToVector3();
 
             if (!_remoteGunObjects.ContainsKey(actor))
-                _remoteGunObjects[actor] = new Dictionary<string, GameObject>();
+                _remoteGunObjects[actor] = new();
             _remoteGunObjects[actor][gunId] = model;
+
+            UpdateAudioClip(playerObj, gunId);
+        }
+
+        private void UpdateAudioClip(GameObject playerObj, string gunId)
+        {
+            Gun? gun = _guns.FirstOrDefault(g => g.Id == gunId);
+            if (gun == null) return;
+            AudioSource? source = playerObj.GetComponent<AudioSource>();
+            if (source == null)
+            {
+                _logger?.Msg($"GunNetworking: adding AudioSource to player object for '{gunId}'");
+                source = playerObj.AddComponent<AudioSource>();
+                source.spatialBlend = 1f;
+                source.maxDistance = 50f;
+                source.rolloffMode = AudioRolloffMode.Linear;
+            }
+            source.clip = AudioImporter.Load(GunLoader.GetAudioPath(_modResources, gun));
+        }
+
+        private void PlayRemoteShot(GameObject playerObj, int actor)
+        {
+            AudioSource? source = playerObj.GetComponent<AudioSource>();
+            if (source == null || source.clip == null)
+            {
+                _logger?.Warning($"PlayRemoteShot: no AudioSource or clip for actor {actor}");
+                return;
+            }
+            source.PlayOneShot(source.clip);
         }
 
         private static void SpawnRemoteCube(Vector3 spawnPos, Vector3 spawnDir)
@@ -145,47 +194,19 @@ namespace mszguns
             UnityEngine.Object.Destroy(cube, 5f);
         }
 
-        public static void SendShot(ShotEffect effect, Vector3 pos, Vector3 dir, float duration)
+        public void SendShot(ShotEffect effect, Vector3 pos, Vector3 dir, float duration)
         {
-            if (!_available) return;
             NetworkRegistry.Provider?.Send("mszguns.shot", new float[]
             {
-                pos.x, pos.y, pos.z,
-                dir.x, dir.y, dir.z,
-                duration,
-                (float)effect
+            pos.x, pos.y, pos.z,
+            dir.x, dir.y, dir.z,
+            duration,
+            (float)effect
             });
         }
 
-        private static void PlayRemoteShot(GameObject playerObj, int actor)
+        public void SendEquip(string? gunId)
         {
-            if (!_remoteGuns.TryGetValue(actor, out string? gunId))
-            {
-                MelonLogger.Warning($"PlayRemoteShot: no gun tracked for actor {actor}");
-                return;
-            }
-
-            Gun? gun = _guns.FirstOrDefault(g => g.Id == gunId);
-            if (gun == null) return;
-
-            AudioSource? source = playerObj.GetComponent<AudioSource>();
-            if (source == null)
-            {
-                source = playerObj.AddComponent<AudioSource>();
-                source.spatialBlend = 1f;
-                source.maxDistance = 50f;
-                source.rolloffMode = AudioRolloffMode.Linear;
-            }
-
-            if (source.clip == null)
-                source.clip = AudioImporter.Load(GunLoader.GetAudioPath(_modResources, gun));
-
-            source.PlayOneShot(source.clip);
-        }
-
-        public static void SendEquip(string? gunId)
-        {
-            if (!_available) return;
             NetworkRegistry.Provider?.Send("mszguns.equip", gunId ?? "", true);
         }
     }

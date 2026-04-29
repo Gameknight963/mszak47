@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -21,7 +21,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="ak-icon.blend" />
+	  <EmbeddedResource Remove="blender\**" />
+	  <EmbeddedResource Remove="dependencies\**" />
+	  <EmbeddedResource Remove="guns\**" />
+	  <None Remove="blender\**" />
+	  <None Remove="dependencies\**" />
+	  <None Remove="guns\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -38,7 +43,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="NAudio" Version="2.3.0" />
 	  <PackageReference Include="VGltf" Version="0.2.25" />
 	</ItemGroup>
 
@@ -66,6 +70,21 @@
 	  </Reference>
 	  <Reference Include="Multiside.shared">
 	    <HintPath>dependencies\Multiside.shared.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NAudio">
+	    <HintPath>dependencies\NAudio.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NAudio.Asio">
+	    <HintPath>dependencies\NAudio.Asio.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NAudio.Core">
+	    <HintPath>dependencies\NAudio.Core.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NAudio.Wasapi">
+	    <HintPath>dependencies\NAudio.Wasapi.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NAudio.WinMM">
+	    <HintPath>dependencies\NAudio.WinMM.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Newtonsoft.Json">
 	    <HintPath>dependencies\Newtonsoft.Json.dll</HintPath>
