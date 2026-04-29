@@ -137,6 +137,7 @@ namespace mszguns
                         SpawnBulletHole(normalHit, holeTexture, gun.BulletHoleDuration);
                         GunNetworking.Instance?.SendShot(ShotEffect.Normal, normalHit.point, normalHit.normal, gun.BulletHoleDuration);
                     }
+                    GunNetworking.Instance?.SendFireAudioMessage();
                     break;
                 case ShotEffect.Shotgun:
                     LoggerInstance.Msg("shotgun shot");
@@ -152,6 +153,7 @@ namespace mszguns
                             GunNetworking.Instance?.SendShot(ShotEffect.Shotgun, shotgunHit.point, shotgunHit.normal, gun.BulletHoleDuration);
                         }
                     });
+                    GunNetworking.Instance?.SendFireAudioMessage();
                     break;
                 case ShotEffect.Cube:
                     GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -164,6 +166,7 @@ namespace mszguns
                         Camera.main.transform.position + Camera.main.transform.forward,
                         Camera.main.transform.forward,
                         0f);
+                    GunNetworking.Instance?.SendFireAudioMessage();
                     break;
             }
             DOTween.Kill(RotateTweenId);

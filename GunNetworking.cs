@@ -67,6 +67,15 @@ namespace mszguns
                         SetRemoteGun(actor, playerObj, gunId);
                     return;
                 }
+
+                if (channel == "mszguns.audio")
+                {
+                    GameObject? playerObj = provider.GetPlayerObject(actor);
+                    if (playerObj != null)
+                        PlayRemoteShot(playerObj);
+                    return;
+                }
+
                 if (channel != "mszguns.shot") return;
 
                 float[] d = (float[])data;
@@ -75,21 +84,18 @@ namespace mszguns
                 if (effect == ShotEffect.Cube)
                 {
                     SpawnRemoteCube(
-                        new(d[0], d[1], d[2]),
-                        new(d[3], d[4], d[5]));
+                        new Vector3(d[0], d[1], d[2]),
+                        new Vector3(d[3], d[4], d[5]));
                 }
                 else
                 {
                     if (d.Length < 7) return;
                     if (Core.BulletHoleTexture == null) return;
                     Core.SpawnBulletHole(
-                        new(d[0], d[1], d[2]),
-                        new(d[3], d[4], d[5]),
+                        new Vector3(d[0], d[1], d[2]),
+                        new Vector3(d[3], d[4], d[5]),
                         Core.BulletHoleTexture,
                         d[6]);
-                    GameObject? playerObj = provider.GetPlayerObject(actor);
-                    if (playerObj != null)
-                        PlayRemoteShot(playerObj, actor);
                 }
             };
 
@@ -112,6 +118,11 @@ namespace mszguns
                 if (!string.IsNullOrEmpty(Core.ActiveGunId))
                     provider.SendTo(actor, "mszguns.equip", Core.ActiveGunId);
             };
+        }
+
+        public void SendFireAudioMessage()
+        {
+            NetworkRegistry.Provider?.Send("mszguns.audio", -1);
         }
 
         private void SetRemoteGun(int actor, GameObject playerObj, string gunId)
@@ -160,8 +171,14 @@ namespace mszguns
         private void UpdateAudioClip(GameObject playerObj, string gunId)
         {
             Gun? gun = _guns.FirstOrDefault(g => g.Id == gunId);
-            if (gun == null) return;
+            if (gun == null)
+            {
+                _logger?.Warning($"HandleGunAudio: gun '{gunId}' not found");
+                return;
+            }
+
             AudioSource? source = playerObj.GetComponent<AudioSource>();
+            
             if (source == null)
             {
                 _logger?.Msg($"GunNetworking: adding AudioSource to player object for '{gunId}'");
@@ -170,17 +187,16 @@ namespace mszguns
                 source.maxDistance = 50f;
                 source.rolloffMode = AudioRolloffMode.Linear;
             }
-            source.clip = AudioImporter.Load(GunLoader.GetAudioPath(_modResources, gun));
+
+            if (source.clip == null || source.clip.name != gun.Id)
+            {
+                source.clip = AudioImporter.Load(GunLoader.GetAudioPath(_modResources, gun));
+            }
         }
 
-        private void PlayRemoteShot(GameObject playerObj, int actor)
+        private void PlayRemoteShot(GameObject playerObj)
         {
             AudioSource? source = playerObj.GetComponent<AudioSource>();
-            if (source == null || source.clip == null)
-            {
-                _logger?.Warning($"PlayRemoteShot: no AudioSource or clip for actor {actor}");
-                return;
-            }
             source.PlayOneShot(source.clip);
         }
 
