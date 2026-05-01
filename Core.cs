@@ -140,7 +140,6 @@ namespace mszguns
                     GunNetworking.Instance?.SendFireAudioMessage();
                     break;
                 case ShotEffect.Shotgun:
-                    LoggerInstance.Msg("shotgun shot");
                     Enumerable.Range(0, 8).ToList().ForEach(_ =>
                     {
                         Vector3 spread = Camera.main.transform.forward + new Vector3(
