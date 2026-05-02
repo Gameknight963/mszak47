@@ -124,8 +124,8 @@ More effects are planned.
 
 | Input                     | Action                               |
 | ------------------------- | ------------------------------------ |
-| Left mouse button (hold)  | Fire                                 |
-| Right mouse button (hold) | Aim down sights                      |
+| Left mouse button         | Fire                                 |
+| Right mouse button        | Aim down sights                      |
 | 1–9                       | Select hotbar slot (via InventoryUI) |
 
 ---
@@ -141,3 +141,6 @@ More effects are planned.
 ### Tip to align your guns well
 
 It's not going to be perfect the first time. Instead of adjusting `gun.json` and reloading the game over and over again, install [UnityExplorer](https://github.com/yukieiji/UnityExplorer) (fork maintained by yukieiji) and use it to adjust the position in real time. When you're happy with it, copy the numbers you set and put them in `gun.json`.
+
+### Enabling network logging
+I overcomplicated it in the code for some reason lol. The `GunNetworking` singleton has a `LoggingEnabled` bool property you can enable that will enable debug messages. Note that you will need to create a mod to do this, I left it in because why not.
