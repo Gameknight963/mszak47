@@ -1,4 +1,5 @@
-﻿using MelonLoader;
+﻿using Il2CppSystem.Runtime.Remoting.Messaging;
+using MelonLoader;
 using MultiSide.shared;
 using UnityEngine;
 
@@ -12,12 +13,32 @@ namespace mszguns
         private readonly Dictionary<int, Dictionary<string, GameObject>> _remoteGunObjects = new();
         private readonly string _modResources;
         private readonly List<Gun> _guns;
-        private MelonLogger.Instance? _logger;
+        private GunNetworkLogger? _logger;
+
+        bool _loggingEnabled = false;
+        public bool LoggingEnabled 
+        {
+            get => _loggingEnabled;
+            set
+            {
+                _loggingEnabled = value;
+                _logger?.SetLoggingEnabled(value);
+            }
+        }
 
         private GunNetworking(string modResources, List<Gun> guns)
         {
             _modResources = modResources;
             _guns = guns;
+        }
+
+        private class GunNetworkLogger(MelonLogger.Instance logger)
+        {
+            public void SetLoggingEnabled(bool enabled) => _loggingEnabled = enabled;
+            public bool _loggingEnabled = false;
+            public void Msg(object obj) { if (_loggingEnabled) logger.Msg(obj); }
+            public void Warning(object obj) { if (_loggingEnabled) logger.Warning(obj); }
+            public void Error(object obj) { if (_loggingEnabled) logger.Warning(obj); }
         }
 
         public static void Init(string modResources, List<Gun> guns, MelonLogger.Instance logger)
@@ -27,7 +48,8 @@ namespace mszguns
             if (!available) return;
             Instance = new GunNetworking(modResources, guns);
 
-            Instance._logger = logger;
+            Instance._logger = new GunNetworkLogger(logger);
+            Instance._logger.SetLoggingEnabled(Instance.LoggingEnabled);
             Instance._logger.Msg("Starting in Online mode");
             Instance.InitNetwork();
         }
