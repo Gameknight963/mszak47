@@ -164,3 +164,19 @@ It's not going to be perfect the first time. Instead of adjusting `gun.json` and
 
 ### Enabling network logging
 I overcomplicated it in the code for some reason lol. The `GunNetworking` singleton has a `LoggingEnabled` bool property you can enable that will enable debug messages. Note that you will need to create a mod to do this, I left it in because why not.
+
+## Screenshits
+
+ha see what i did there
+
+multiplayer
+<br>
+<img width="2505" height="892" alt="0tZo1SXjVB" src="https://github.com/user-attachments/assets/4205724b-764c-492d-b753-8cc9070cbe7c" />
+
+other gameplay
+
+<img src="https://github.com/user-attachments/assets/61adeab4-5e5e-4b2c-bc88-0cc7a318a253" width="40%" />
+<img src="https://github.com/user-attachments/assets/4558066a-e702-4bbb-bf54-1bc9924c01b3" width="40%" />
+<img src="https://github.com/user-attachments/assets/65a10b6e-2cc4-4f27-8803-17f3cb4eed9a" width="40%" />
+
+yes i know this layout is bad be glad i put screenshots at all
