@@ -2,11 +2,31 @@
 
 A MelonLoader mod that adds guns to Miside Zero, built on top of InventoryFramework. Guns are defined as folders containing a config file and assets, no code is required to add new ones.
 
+## Features:
+
+- Modular gun system requiring no scripting
+- Optional Photon multiplayer through [Multiside](https://github.com/Gameknight963/Multiside)
+
+### Multiplayer roadmap
+ - ✅ Selected gun syncing
+ - ✅ Shot syncing + audio
+ - ❌ ADS syncing
+ - ❌ Gun pitch (up down) syncing (Requires to be implemented in Multiside)
+ - ❌ Health system
+
+## Installation
+
+Get the latest release 
+
+https://github.com/Gameknight963/mszak47/releases
+
+Follow the instructions there.
+
 ---
 
-## Manual setup
+## Build + file setup
 
-Set up references and build the project. Put `mszguns.dll` into your `Mods` folder alongside `InventoryFramework.dll` and `InventoryUI.dll`. 
+Clone this repo and build the project (all the referenced assemblies are contained within the repo.) Put `mszguns.dll` into your `Mods` folder alongside `InventoryFramework.dll`, `InventoryUI.dll`, and optionally `Multiside.dll` and `Multiside.shared.dll` if you want multiplayer.
 
 Get the following dependencies and put them in `UserLibs`:
 
