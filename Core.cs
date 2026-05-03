@@ -6,7 +6,7 @@ using MelonLoader.Utils;
 using UnityEngine;
 
 [assembly: MelonInfo(typeof(mszguns.Core), "Miside Zero AK47", "2.0.0", "gameknight963")]
-[assembly: MelonOptionalDependencies("Multiside.Shared")]
+[assembly: MelonOptionalDependencies("Multiside.shared")]
 
 namespace mszguns
 {
